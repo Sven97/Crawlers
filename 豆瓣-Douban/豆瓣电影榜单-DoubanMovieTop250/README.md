@@ -3,11 +3,11 @@
 ## 零. 目标
 利用Scrapy框架对豆瓣电影榜单Top250中的的电影信息`[排名，电影豆瓣ID，电影名，简介，评分，评论数，摘引，海报图片略缩图地址]`进行抓取，并保存成`.csv`文件
 
-![Screen Shot 2020-07-21 at 2.25.47 PM](README.assets/Screen Shot 2020-07-21 at 2.25.47 PM.png)
+![target](README.assets/target.png)
 
 ## 壹. Scrapy的工作原理
 
-**[Scrapy](https://scrapy.org/)**是一个开源的爬虫应用框架，用于以快速，简单但可扩展的方式从网站提取结构性数据。可以应用在包括数据挖掘，信息处理或存储历史数据等一系列的程序中。一个Scrapy项目的组成结构如下图展示
+[**Scrapy**](https://scrapy.org/)是一个开源的爬虫应用框架，用于以快速，简单但可扩展的方式从网站提取结构性数据。可以应用在包括数据挖掘，信息处理或存储历史数据等一系列的程序中。一个Scrapy项目的组成结构如下图展示
 
 ![scrapy-extracting-structured-data-v1](README.assets/scrapy-extracting-structured-data-v1.png)
 
@@ -75,7 +75,7 @@ class MovieSpider(scrapy.Spider):
 
 需要爬取的豆瓣电影榜单的URL为https://movie.douban.com/top250，以《肖申克的救赎》为例
 
-![Screen Shot 2020-07-21 at 2.10.47 PM](README.assets/Screen Shot 2020-07-21 at 2.10.47 PM.png)
+![movie-item](README.assets/movie-item.png)
 
 我们要爬取的电影信息有`[排名，电影豆瓣ID，电影名，简介，评分，评论数，摘引，海报图片略缩图地址]`，因此需要在`items.py`文件中先定义这几个对象：
 
@@ -118,14 +118,13 @@ start_urls = ['https://movie.douban.com/top250']
 
 如下图所示，每个电影条目都包裹在`<ol class="grid_view">`下的一个个`<li>`标签里，因此通过XPath: `//ol[@class='grid_view']/li` 可以选中了本页面所有的电影条目。
 
-
-![Screen Shot 2020-07-21 at 5.24.36 PM](README.assets/Screen Shot 2020-07-21 at 5.24.36 PM.png)
+![movie-list](README.assets/movie-list.png)
 
 爬虫返回的response对象有`xpath()`方法，可以直接处理XPath规则字符串并返回对应的页面内容，这些内容都是选择器对象Selector，可以进一步作细化的内容选取，通过XPath选择出其中的`排名，电影豆瓣ID，电影名，简介，评分，评论数，摘引，海报图片略缩图地址`等内容，即之前在`items.py`文件中所定义的数据结构`Doubanmovietop250Item`。循环遍历每个电影列表从其中爬取到准确的电影信息，并保存为对象item，最后通过yield将item对象从Spiders返回到Item管道。
 
 爬虫除了需要从页面提取Item数据之外还还需要形成下一页的Request请求，分析`后页`按钮，如下图所示：
 
-![Screen Shot 2020-07-21 at 5.48.42 PM](README.assets/Screen Shot 2020-07-21 at 5.48.42 PM.png)
+![next-page](README.assets/next-page.png)
 
 通过XPath: `//span[@class='next']/link`选中`后页`按钮并提取出其`href`值与网站地址`https://movie.douban.com/top250`拼接，就可以得到下一页面的URL地址。如果不为空，则拼接得到的Request请求yield提交给调度器Scheduler。
 
@@ -179,22 +178,22 @@ class MovieSpider(scrapy.Spider):
 scrapy crawl movie
 ```
 
-## 伍. 数据保存
+## 伍. 数据输出
 
-在运行爬虫文件时通过参数-o指定文件保存的位置即可，可以根据文件后缀名选择保存为json或者csv文件，例如
+在运行爬虫文件时通过参数`-o`指定文件保存的位置，可以根据文件后缀名选择保存为json或者csv文件，例如
 
 ```
 scrapy crawl movie -o output.csv
 ```
 
-![Screen Shot 2020-07-21 at 7.32.36 PM](README.assets/Screen Shot 2020-07-21 at 7.32.36 PM.png)
+![output](README.assets/output.png)
 
 还可以修改`piplines.py`文件，对取得的Item数据作进一步操作，从而通过python操作将其保存到数据库中。
 
 
 ## 陆. 中间件设置
 
-利用IP池或UA池来应对网站的反爬虫机制非常常见，Scrapy让我们可以通过中间件Middleware的方式来实现代理。此处通过User-Agent列表来进行演示：在middlewares.py文件中新建一个user_agent类用于为请求头添加用户列表，从网上查一些常用的用户代理放入USER_AGENT_LIST列表，然后通过random函数从中随机抽取一个作为代理，设置为reques请求头的User_Agent字段
+利用IP池或UA池来应对网站的反爬虫机制非常常见，Scrapy让我们可以通过中间件Middleware的方式来实现代理。此处通过User-Agent列表来进行演示：在`middlewares.py`文件中新建一个`UserAgent`类用于为请求头添加用户列表，从网上查一些常用的用户代理放入USER_AGENT_LIST列表，然后通过random函数从中随机抽取一个作为代理，设置为request请求头的User_Agent字段
 
 ```python
 # ./doubanmovietop250/middleware.py
@@ -217,7 +216,7 @@ class UserAgent(object):
         request.headers['User_Agent'] = agent  # 设置请求头的用户代理
 ```
 
-在settings.py文件内设置开启下载中间件即取消如下几行的注释，注册代理类user_agent并设置优先级，数字越小优先级越高
+在`settings.py`文件内设置开启下载中间件即取消如下几行的注释，注册代理类`UserAgent`并设置优先级，数字越小优先级越高
 
 ```python
 # ./doubanmovietop250/settings.py
